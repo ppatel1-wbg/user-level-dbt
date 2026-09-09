@@ -222,3 +222,7 @@ __marimo__/
 # Personal
 *.ipynb
 notes.md
+
+# dbt
+dbt_packages/
+logs/
