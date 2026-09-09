@@ -1,0 +1,53 @@
+version: 2
+
+models:
+  - name: k1_user_level_activity_begin
+    description: >
+      One row per user, ever -- lifetime activity_begin snapshot. Translation
+      of data-cache-manual.ipynb cells 27-29: first_platform/install_ts are
+      sticky (never overwritten once set), platform_name/last_platform/
+      last_seen_ts are "latest wins". See notes.md section 7d.
+    columns:
+      - name: game_code
+        description: Game code, hardcoded to 'k1' for this pipeline.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['k1']
+      - name: platform_account_id
+        description: Platform account id.
+        data_tests:
+          - not_null
+      - name: hydra_public_id
+        description: Hydra public id for the account.
+        data_tests:
+          - not_null
+      - name: platform_name
+        description: Most recently seen platform name, across all history.
+        data_tests:
+          - not_null
+      - name: first_platform
+        description: First platform the user was ever seen on. Sticky -- never overwritten once set.
+        data_tests:
+          - not_null
+      - name: last_platform
+        description: Last platform the user was seen on (same as platform_name).
+        data_tests:
+          - not_null
+      - name: install_ts
+        description: Earliest wb_source_epoch ever seen for this user. Sticky -- only ever moves earlier via LEAST.
+        data_tests:
+          - not_null
+      - name: last_seen_ts
+        description: Latest wb_source_epoch ever seen for this user. Only ever moves later via GREATEST.
+        data_tests:
+          - not_null
+    data_tests:
+      - unique:
+          arguments:
+            column_name: "platform_account_id || '~' || hydra_public_id"
+      - install_before_last_seen:
+          arguments:
+            install_column: install_ts
+            last_seen_column: last_seen_ts

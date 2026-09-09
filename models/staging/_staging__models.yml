@@ -1,0 +1,46 @@
+version: 2
+
+models:
+  - name: stg_k1_activity_begin
+    description: >
+      Denormalized view over the k1_raw.k1_activity_begin source
+      (cell 4 of data-cache-manual.ipynb) -- renamed/flattened columns,
+      one row per raw telemetry row.
+    columns:
+      - name: platform_account_id
+        description: Platform account id (e.g. `pai_k1_015`).
+        data_tests:
+          - not_null
+      - name: hydra_public_id
+        description: Hydra public id for the account.
+        data_tests:
+          - not_null
+      - name: platform_name
+        description: >
+          Raw platform name as reported by telemetry. Intentionally
+          nullable -- some events (see seed.ipynb fixture for
+          hydra_k1_015) legitimately arrive with no platform attached,
+          which is exactly what the FILTER-based aggregation in
+          k1_event_aggregated has to handle correctly.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['ps5', 'xbox_series_x', 'switch', 'steam']
+              config:
+                where: "platform_name is not null"
+      - name: session_id
+        description: Telemetry session id.
+        data_tests:
+          - not_null
+      - name: wb_source_epoch
+        description: Unix epoch seconds derived from wbanalyticssourcedate.
+        data_tests:
+          - not_null
+      - name: wba_date
+        description: Partition date, format yyyyMMdd.
+        data_tests:
+          - not_null
+      - name: hr
+        description: Partition hour, format HH.
+        data_tests:
+          - not_null

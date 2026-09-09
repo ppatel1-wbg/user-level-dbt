@@ -1,0 +1,48 @@
+version: 2
+
+sources:
+  - name: k1_raw
+    description: >
+      Raw K1 tables produced by `seed.ipynb` today (either sandbox fixture
+      data or, eventually, real upstream telemetry/CRM/pricing feeds) in
+      wba_sandbox.default. dbt only reads from these — nothing here is
+      managed by dbt.
+    database: wba_sandbox
+    schema: default
+    tables:
+      - name: k1_activity_begin
+        description: Raw telemetry — session activity heartbeat events, partitioned by wba_date/hr.
+      - name: k1_core_session_start
+        description: Raw telemetry — session start events, partitioned by wba_date/hr.
+      - name: k1_promotion_click
+        description: Raw telemetry — promotion click events, partitioned by wba_date/hr.
+      - name: k1_promotion_view_end
+        description: Raw telemetry — promotion view-end events, partitioned by wba_date/hr.
+      - name: k1_promotionsapi_assignment
+        description: Raw telemetry — promotions API assignment events, partitioned by wba_date/hr.
+      - name: k1_promotionsapi_response
+        description: Raw telemetry — promotions API response events, partitioned by wba_date/hr.
+      - name: k1_urlservicesapi_redirect5
+        description: Raw telemetry — URL redirect service events, partitioned by wba_date/hr.
+      - name: map_platform_name
+        description: Lookup — raw platform name to platform family/name mapping.
+      - name: geography
+        description: Lookup — country name to country code mapping.
+      - name: dim_platformid_trials
+        description: Dimension — platform account trial start dates.
+      - name: fact_platformid_purchases
+        description: Fact — purchase transactions by platform account.
+      - name: crm_subscriber_flag
+        description: CRM subscriber flag by platform account.
+      - name: all_promo_outcomes_vw
+        description: Promo campaign outcomes by platform account.
+      - name: pn_account_flag
+        description: Platform-notification subscription/signup flags by platform account.
+      - name: cpat_uuid_config_flat_vw
+        description: Flattened promotion/campaign config (promotion, arm, product).
+      - name: cpat_uuid_config_vw
+        description: Promotion UUID to source game code config.
+      - name: pgrid_pricing_vw
+        description: Campaign pricing grid by title/product/platform/country.
+      - name: msrp_pricing_vw
+        description: MSRP pricing by title/product/platform/country.

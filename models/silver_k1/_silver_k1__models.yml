@@ -1,0 +1,61 @@
+version: 2
+
+models:
+  - name: k1_event_aggregated
+    description: >
+      One row per active user per hour (game_code, platform_account_id,
+      hydra_public_id, wba_date, hr). Translation of
+      data-cache-manual.ipynb cells 18-20, using a FILTER-based min_by/max_by
+      rewrite instead of the notebook's pandas_udf first_by_epoch/
+      last_by_epoch (see notes.md section 7b).
+    columns:
+      - name: game_code
+        description: Game code, hardcoded to 'k1' for this pipeline.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['k1']
+      - name: platform_account_id
+        description: Platform account id.
+        data_tests:
+          - not_null
+      - name: hydra_public_id
+        description: Hydra public id for the account.
+        data_tests:
+          - not_null
+      - name: platform_name
+        description: >
+          Last non-null platform name seen in the hour, resolved via a
+          FILTER-based min_by/max_by rewrite that correctly ignores
+          trailing NULL platform events -- see
+          assert_k1_event_aggregated_ignores_trailing_null_platform.sql
+          for the regression test covering this specifically.
+      - name: first_platform
+        description: First non-null platform name seen in the hour.
+      - name: last_platform
+        description: Last non-null platform name seen in the hour (same as platform_name).
+      - name: install_ts
+        description: Minimum wb_source_epoch seen in the hour.
+        data_tests:
+          - not_null
+      - name: last_seen_ts
+        description: Maximum wb_source_epoch seen in the hour.
+        data_tests:
+          - not_null
+      - name: wba_date
+        description: Partition date, format yyyyMMdd.
+        data_tests:
+          - not_null
+      - name: hr
+        description: Partition hour, format HH.
+        data_tests:
+          - not_null
+    data_tests:
+      - unique:
+          arguments:
+            column_name: "platform_account_id || '~' || hydra_public_id || '~' || wba_date || '~' || hr"
+      - install_before_last_seen:
+          arguments:
+            install_column: install_ts
+            last_seen_column: last_seen_ts
