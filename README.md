@@ -25,12 +25,7 @@ dbt --version
 
 ### Using OAuth
 
-This is the easiest path when PATs are disabled and you don't have (or don't
-want to wait on) a service principal. It authenticates as *you*, via a
-one-time browser login, the same way `databricks auth login` works.
-
-`dbt init`'s interactive wizard does **not** offer this as a menu option —
-you have to hand-write it into `~/.dbt/profiles.yml`:
+Manually create a file at `~/.dbt/profiles.yml` with below content:
 
 ```yaml
 user_level_dbt:
@@ -45,3 +40,72 @@ user_level_dbt:
       auth_type: oauth
       threads: 4
 ```
+
+Verify the connection:
+
+```shell
+dbt debug
+```
+
+## Project structure
+
+
+```
+models/
+  staging/            -- wba_sandbox.default   (views, 1:1 with raw sources)
+    stg_k1_activity_begin.sql
+  silver_k1/          -- wba_sandbox.silver_k1  (incremental, one row per user per hour)
+    k1_event_aggregated.sql
+  gold_k1/            -- wba_sandbox.gold_k1    (incremental, one row per user, ever)
+    k1_user_level_activity_begin.sql
+tests/
+  generic/            -- reusable custom test macros (e.g. install_before_last_seen)
+  assert_*.sql        -- singular tests, incl. a regression test for a specific
+                          NULL-handling bug found in data-cache-manual.ipynb
+macros/
+  generate_schema_name.sql  -- makes +schema: map exactly to wba_sandbox.<schema>,
+                                instead of dbt's usual <target_schema>_<custom_schema>
+```
+
+Data flows `staging -> silver_k1 -> gold_k1`.
+
+## Commands
+
+```shell
+# Confirm your connection/credentials are working
+dbt debug
+
+# Check everything parses/compiles without touching the warehouse
+dbt parse
+dbt compile
+
+# Build just the staging layer (cheap, always safe to re-run -- it's a view)
+dbt run --select staging
+
+# First-ever build of silver/gold: these tables already exist in Databricks
+# from manually running data-cache-manual.ipynb, with a different schema
+# than dbt produces, so the very first dbt build of each must use
+# --full-refresh to drop and recreate them cleanly:
+dbt run --select k1_event_aggregated --full-refresh
+dbt run --select k1_user_level_activity_begin --full-refresh
+
+# Every run after that: normal incremental merge, respecting dependency
+# order (staging -> silver_k1 -> gold_k1)
+dbt run
+
+# Build a model and everything downstream of it
+dbt run --select k1_event_aggregated+
+
+# Run the test suite (schema tests + singular regression tests)
+dbt test
+
+# Build + test in one go -- the command you'll use day to day
+dbt build
+
+# Preview a model's output without materializing it
+dbt show --select stg_k1_activity_begin --limit 10
+
+# Browse column-level docs and the staging -> silver -> gold lineage graph
+dbt docs generate && dbt docs serve
+```
+
